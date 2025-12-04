@@ -1,0 +1,7 @@
+bone_mask/
+bone_tooth_mask/
+dataset/
+logs/
+outputs/
+splits/
+clean_pycache.sh
