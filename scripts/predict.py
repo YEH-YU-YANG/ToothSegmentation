@@ -10,7 +10,12 @@ from src.utils import track
 from src.models import get_model
 from torch.utils.data import DataLoader
 
-def save_image(image, predict, mask, output_dir, filename):
+def save_image(image, output_dir, filename):
+    to_image = ToPILImage()
+    image = to_image(image)
+    image.save(os.path.join(output_dir, filename))
+
+def save_compare(image, predict, mask, output_dir, filename):
     to_image = ToPILImage()
     font = ImageFont.load_default(20)
 
@@ -43,13 +48,14 @@ def predict_patient(model, patient, output_dir, config):
         ground_truth.append(masks)
 
         images = images.squeeze(1).cpu()
-        predicts = predicts / 2
-        masks = masks / 2
 
         for filename, image, predict, mask in zip(filenames, images, predicts, masks):
             image_filename = os.path.basename(filename)
-            save_image(image, predict, mask, output_dir, image_filename)
-    
+            save_image(predict.to(torch.uint8), os.path.join(output_dir, 'predict'), image_filename)
+            predict = predict / 2
+            mask = mask / 2
+            save_compare(image, predict, mask, os.path.join(output_dir, 'compare'), image_filename)
+
     volume = torch.cat(volume)
     numpy.save(os.path.join(output_dir, 'volume.npy'), volume.numpy())
 
@@ -84,6 +90,7 @@ if __name__ == '__main__':
         _, val_patients = get_fold(config.SPLIT_FILENAME, fold)
         for patient in val_patients:
             output_dir = os.path.join('outputs', experiment_name, f'Fold_{fold}', patient)
-            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(os.path.join(output_dir, 'predict'), exist_ok=True)
+            os.makedirs(os.path.join(output_dir, 'compare'), exist_ok=True)
 
             predict_patient(model, patient, output_dir, config)

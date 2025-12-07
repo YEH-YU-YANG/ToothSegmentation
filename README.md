@@ -4,14 +4,16 @@
 
 ```
 📁 scripts
+├── 📄 evaluate.py          # Runs model evaluation for each fold, computes losses and metrics (e.g., mIoU)
 ├── 📄 predict.py           # Inference script for generating segmentation results
 ├── 📄 prepare_kfold.py     # Data splitting for K-Fold cross-validation
 ├── 📄 run_experiment.py    # Main script to run complete experimental workflows
-└── 📄 train.py             # Entry point for single model training
+├── 📄 train.py             # Entry point for single model training
+└── 📄 visualize.py         # Visualizes model predictions alongside ground-truth masks for qualitative analysis
 📁 src
 ├── 📂 models
-│   ├── 📄 ...              # Additional model implementation
-│   └── 📄 unet.py          # U-Net model architecture definition
+│   ├── 📄 unet.py          # U-Net model architecture definition
+│   └── 📄 ...              # Additional model implementation
 ├── 📄 config.py            # Configuration settings and hyperparameters
 ├── 📄 dataset.py           # Custom Dataset and DataLoader implementation
 ├── 📄 losses.py            # Custom loss functions
@@ -32,6 +34,8 @@ Your dataset must follow:
 │   └── 📂 ...
 └── 📂 mask
     ├── 📂 data_1
+    │   ├── 📄 91.png
+    │   └── 📄 ...
     └── 📂 ...
 ```
 **Requirements**
@@ -159,8 +163,12 @@ Outputs:
 📁 outputs/<EXPERIMENT_NAME>
 ├── 📂 Fold_1
 │   ├── 📂 data_1
-│   │   ├── 📄 91.png
-│   │   ├── 📄 ...
+│   │   ├── 📂 compare
+│   │   │   ├── 📄 91.png
+│   │   │   └── 📄 ...
+│   │   ├── 📂 predict
+│   │   │   ├── 📄 91.png
+│   │   │   └── 📄 ...
 │   │   ├── 📄 ground_truth.npy
 │   │   └── 📄 volume.npy
 │   └── 📂 ...
