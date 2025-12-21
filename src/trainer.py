@@ -12,17 +12,17 @@ from src.metrics import get_metric
 
 class Trainer:
     def __init__(self, config):
-        self.log_dir = os.path.join('logs', config.EXPERIMENT, f'Fold_{config.FOLD}')
+        self.log_dir = os.path.join('logs', config.experiment, f'Fold_{config.fold}')
         self.train_loader, self.val_loader = get_loader(config)
-        self.model = get_model(config).to(config.DEVICE)
+        self.model = get_model(config).to(config.device)
         self.optimizer = get_optimizer(self.model, config)
-        self.criterion = get_loss(config).to(config.DEVICE)
-        self.metric_fn = get_metric(config).to(config.DEVICE)
-        self.main_loss = config.MAIN_LOSS
-        self.metric_name = config.METRIC_NAME
-        self.device = config.DEVICE
+        self.criterion = get_loss(config).to(config.device)
+        self.metric_fn = get_metric(config).to(config.device)
+        self.main_loss = config.loss.main_loss
+        self.metric_name = config.metric.name
+        self.device = config.device
 
-        self.grad_scaler = amp.GradScaler(config.DEVICE)
+        self.grad_scaler = amp.GradScaler(config.device)
         self.summary_writer = SummaryWriter(self.log_dir)
         self.columns = [*self.criterion.components, self.metric_name]
     def run_epoch(self, train=True):

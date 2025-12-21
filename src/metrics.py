@@ -21,38 +21,30 @@ METRICS = {
 }
 
 def get_metric(config):
-    return METRICS[config.METRIC_NAME](**config.METRIC_PARAMETERS)
+    return METRICS[config.metric.name](**config.metric.parameters)
 
 if __name__ == '__main__':
-    from .dataset import get_loader
-    from .models import get_model
-    from .utils import Table
-    from .config import Config
+    import torch
 
-    config = Config()
-    config.MODEL_NAME = 'DeepUNet'
-    config.MODEL_PARAMETERS = {
-        'in_channels': 1,
-        'num_classes': 3
-    }
-    config.METRIC_NAME = 'mIoU'
-    config.METRIC_PARAMETERS = {
-        'num_classes': 3,
-        'predict_index': 0
-    }
-    config.BATCH_SIZE = 4
-    config.FOLD = 1
+    from src.dataset import get_loader
+    from src.models import get_model
+    from src.utils import Table
+    from src.config import load_config
+
+    config = load_config('configs/unet.toml')
+    config.fold = 1
 
     loader, _ = get_loader(config)
-    model = get_model(config).to(config.DEVICE)
+    model = get_model(config).to(config.device)
 
     for images, masks, _ in loader:
-        images = images.to(config.DEVICE)
-        masks = masks.to(config.DEVICE)
+        images = images.to(config.device)
+        masks = masks.to(config.device)
         break
 
-    predicts = model(images)
-    metric_fn = get_metric(config).to(config.DEVICE)
+    with torch.autocast(config.device):
+        predicts = model(images)
+    metric_fn = get_metric(config).to(config.device)
     metric_fn.update(predicts, masks)
     metric = metric_fn.compute_reset()
 

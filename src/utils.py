@@ -1,11 +1,9 @@
-import json
 import pandas
 import torch
 
 from tbparse import SummaryReader
 from torch import optim
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeElapsedColumn, TimeRemainingColumn
-from .config import Config
 
 class Table:
     def __init__(self, headers=None, *rows):
@@ -106,33 +104,12 @@ def track(sequence, desc=''):
             yield item
             progress.update(task, advance=1)
 
-def save_config(config, save_path):
-    configs = {
-        attribute: getattr(config, attribute)
-        for attribute in dir(config)
-        if not attribute.startswith('__')
-    }
-    
-    with open(save_path, 'w') as file:
-        json.dump(configs, file, indent=4)
-
-def load_config(load_path):
-    with open(load_path) as file:
-        data = json.load(file)
-
-    config = Config()
-    for key, value in data.items():
-        if hasattr(config, key):
-            setattr(config, key, value)
-    
-    return config
-
 OPTIMIZERS = {
     'Adam': optim.Adam
 }
 
 def get_optimizer(model, config):
-    return OPTIMIZERS[config.OPTIMIZER_NAME](model.parameters(), **config.OPTIMIZER_PARAMETERS)
+    return OPTIMIZERS[config.optimizer.name](model.parameters(), **config.optimizer.parameters)
 
 if __name__ == '__main__':
     import time

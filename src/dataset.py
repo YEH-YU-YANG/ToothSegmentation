@@ -50,22 +50,24 @@ class CBCTDataset(Dataset):
         return image, mask, filename
 
 def get_loader(config):
-    train_patients, val_patients = get_fold(config.SPLIT_FILENAME, config.FOLD)
+    train_patients, val_patients = get_fold(config.split_filename, config.fold)
 
-    train_dataset = CBCTDataset(config.DATASET, train_patients)
-    train_loader = DataLoader(train_dataset, config.BATCH_SIZE, shuffle=True, num_workers=config.NUM_WORKERS, pin_memory=True)
+    dataset_dir = os.path.join('datasets', config.dataset)
 
-    val_dataset = CBCTDataset(config.DATASET, val_patients)
-    val_loader = DataLoader(val_dataset, config.BATCH_SIZE, shuffle=False, num_workers=config.NUM_WORKERS, pin_memory=True)
+    train_dataset = CBCTDataset(dataset_dir, train_patients)
+    train_loader = DataLoader(train_dataset, config.batch_size, shuffle=True, num_workers=config.num_workers, pin_memory=True)
+
+    val_dataset = CBCTDataset(dataset_dir, val_patients)
+    val_loader = DataLoader(val_dataset, config.batch_size, shuffle=False, num_workers=config.num_workers, pin_memory=True)
 
     return train_loader, val_loader
 
 if __name__ == '__main__':
-    from .utils import Table
-    from .config import Config
+    from src.utils import Table
+    from src.config import load_config
 
-    config = Config()
-    config.FOLD = 1
+    config = load_config('configs/unet.toml')
+    config.fold = 1
 
     train_loader, val_loader = get_loader(config)
 

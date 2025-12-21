@@ -1,8 +1,7 @@
 __pycache__/
-bone_mask/
-bone_tooth_mask/
 clean_pycache.sh
-dataset/
+configs/config.toml
+datasets/
 logs/
 outputs/
 pyproject.toml

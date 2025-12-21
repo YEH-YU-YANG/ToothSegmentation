@@ -179,14 +179,14 @@ class MainWindow(MainWindowUI):
 def get_patient_fold_mapping(config):
     return {
         patient: fold
-        for fold in range(1, config.NUM_FOLDS + 1)
-        for patient in get_fold(config.SPLIT_FILENAME, fold)[1]
+        for fold in range(1, config.num_folds + 1)
+        for patient in get_fold(config.split_filename, fold)[1]
     }
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
     from PySide6.QtWidgets import QApplication
-    from src.utils import load_config
+    from src.config import load_config
 
     parser = ArgumentParser()
     parser.add_argument('exp', type=str)
@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     experiment_name = args.exp
 
-    config = load_config(os.path.join('logs', experiment_name, 'config.json'))
+    config = load_config(os.path.join('logs', experiment_name, 'config.toml'))
     patient_fold_map = get_patient_fold_mapping(config)
 
     app = QApplication([])

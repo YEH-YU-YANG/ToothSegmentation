@@ -1,0 +1,43 @@
+# System and Experiment
+experiment = "U2Net_baseline"
+seed = 42
+num_workers = 4
+
+# Data Configuration
+dataset = "bone_tooth_mask"
+num_folds = 4
+batch_size = 4
+
+# Training Settings
+num_epochs = 50
+
+# Model Architecture
+[model]
+name = "U2Net"
+
+[model.parameters]
+in_ch = 1
+out_ch = 3
+
+# Optimizer
+[optimizer]
+name = "Adam"
+
+[optimizer.parameters]
+lr = 1e-4
+
+# Loss Function
+[loss]
+name = "DeepSupervisionLoss"
+main_loss = "Total Loss"
+
+[loss.parameters]
+num_classes = 3
+
+# Metric
+[metric]
+name = "mIoU"
+
+[metric.parameters]
+num_classes = 3
+predict_index = 0

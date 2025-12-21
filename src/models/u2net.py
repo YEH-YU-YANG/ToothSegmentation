@@ -664,22 +664,22 @@ class U2Net(nn.Module):
 
 if __name__ == "__main__":
     from src.dataset import get_loader
-    from src.config import Config
+    from src.config import load_config
     from src.utils import Table
 
-    config = Config()
-    config.BATCH_SIZE = 4
-    config.FOLD = 1
+    config = load_config('configs/u2net.toml')
+    config.fold = 1
 
     loader, _ = get_loader(config)
 
-    model = U2Net(in_ch=1).to(config.DEVICE)
+    model = U2Net(**config.model.parameters).to(config.device)
 
     for images, _, _ in loader:
-        images = images.to(config.DEVICE)
+        images = images.to(config.device)
         break
 
-    predicts = model(images)
+    with torch.autocast(config.device):
+        predicts = model(images)
 
     Table(
         ['Item', 'Shape'],

@@ -1,0 +1,42 @@
+# System and Experiment
+experiment = "UNet_baseline"
+seed = 42
+num_workers = 4
+
+# Data Configuration
+dataset = "bone_tooth_mask"
+num_folds = 4
+batch_size = 16
+
+# Training Settings
+num_epochs = 50
+
+# Model Architecture
+[model]
+name = "UNet"
+
+[model.parameters]
+in_channels = 1
+num_classes = 3
+
+# Optimizer
+[optimizer]
+name = "Adam"
+
+[optimizer.parameters]
+lr = 1e-4
+
+# Loss Function
+[loss]
+name = "MultipleLoss"
+main_loss = "Total Loss"
+
+[loss.parameters]
+num_classes = 3
+
+# Metric
+[metric]
+name = "mIoU"
+
+[metric.parameters]
+num_classes = 3

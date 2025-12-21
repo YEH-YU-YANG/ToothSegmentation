@@ -26,7 +26,7 @@
 
 Your dataset must follow:
 ```
-📁 bone_tooth_mask
+📁 datasets/<DATASET_NAME>
 ├── 📂 image
 │   ├── 📂 data_1
 │   │   ├── 📄 91.png
@@ -42,48 +42,51 @@ Your dataset must follow:
 * Images and masks must share identical folder/file names.
 * Masks should contain pixel labels `{0, 1, 2}` for 3 classes.
 
-## ⚙️ Configuration (`src/config.py`)
+## ⚙️ Configuration (`configs/config.toml`)
 
-```python=
-class Config:
-    # System and Experiment
-    EXPERIMENT = 'UNet_baseline'
-    SEED = 42
-    NUM_WORKERS = 4
+```toml=
+# System and Experiment
+experiment = "UNet_baseline"
+seed = 42
+num_workers = 4
 
-    # Data Configuration
-    DATASET = 'bone_tooth_mask'
-    NUM_FOLDS = 4
-    BATCH_SIZE = 16
+# Data Configuration
+dataset = "bone_tooth_mask"
+num_folds = 4
+batch_size = 16
 
-    # Training Settings
-    NUM_EPOCHS = 50
+# Training Settings
+num_epochs = 50
 
-    # Model Architecture
-    MODEL_NAME = 'UNet'
-    MODEL_PARAMETERS = {
-        'in_channels': 1,
-        'num_classes': 3
-    }
+# Model Architecture
+[model]
+name = "UNet"
 
-    # Optimizer
-    OPTIMIZER_NAME = 'Adam'
-    OPTIMIZER_PARAMETERS = {
-        'lr': 1e-4
-    }
+[model.parameters]
+in_channels = 1
+num_classes = 3
 
-    # Loss Function
-    LOSS_NAME = 'MultipleLoss'
-    MAIN_LOSS = 'Total Loss'
-    LOSS_PARAMETERS = {
-        'num_classes': 3
-    }
+# Optimizer
+[optimizer]
+name = "Adam"
 
-    # Metric
-    METRIC_NAME = 'mIoU'
-    METRIC_PARAMETERS = {
-        'num_classes': 3
-    }
+[optimizer.parameters]
+lr = 1e-4
+
+# Loss Function
+[loss]
+name = "MultipleLoss"
+main_loss = "Total Loss"
+
+[loss.parameters]
+num_classes = 3
+
+# Metric
+[metric]
+name = "mIoU"
+
+[metric.parameters]
+num_classes = 3
 ```
 | You can modify this file or override parameters inside the scripts if needed.
 
@@ -94,7 +97,7 @@ python -m scripts.prepare_kfold
 ```
 Generates:
 ```
-splits/bone_tooth_mask.json
+splits/<DATASET_NAME>.json
 {
     "1": ["data_1", ...],
     "2": ["data_2", ...],
@@ -126,8 +129,8 @@ Results saved as:
 ├── 📂 Fold_2
 ├── 📂 Fold_3
 ├── 📂 Fold_4
-├── 📄 bone_tooth_mask.json
-└── 📄 config.json
+├── 📄 <DATASET_NAME>.json
+└── 📄 config.toml
 ```
 
 ## 📊 Validation Model Performance
@@ -187,5 +190,5 @@ python -m scripts.visualize <EXPERIMENT_NAME>
 ## 📝 Notes
 
 * Ensure the dataset follows the required structure.
-* Modify `Config` to customize model, loss, optimizer, and metrics.
+* Modify `configs/config.toml` to customize model, loss, optimizer, and metrics.
 * Support for additional models/losses can be added under `src/models` or `src/losses`.

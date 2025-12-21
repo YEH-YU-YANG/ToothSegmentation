@@ -96,22 +96,22 @@ class DeepUNet(nn.Module):
 
 if __name__ == '__main__':
     from src.dataset import get_loader
-    from src.config import Config
+    from src.config import load_config
     from src.utils import Table
 
-    config = Config()
-    config.FOLD = 1
-    config.BATCH_SIZE = 4
+    config = load_config('configs/deep_unet.toml')
+    config.fold = 1
 
     loader, _ = get_loader(config)
 
-    model = DeepUNet(in_channels=1, num_classes=3).to(config.DEVICE)
+    model = DeepUNet(**config.model.parameters).to(config.device)
 
     for images, _, _ in loader:
-        images = images.to(config.DEVICE)
+        images = images.to(config.device)
         break
 
-    predicts = model(images)
+    with torch.autocast(config.device):
+        predicts = model(images)
 
     Table(
         ['Item', 'Shape'],

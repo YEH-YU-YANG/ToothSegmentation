@@ -1,47 +1,39 @@
 import os
 import torch
+import tomllib
 
-class Config:
-    # System and Experiment
-    EXPERIMENT = 'UNet_DeepSupervision_MultiLoss'
-    SEED = 42
-    NUM_WORKERS = 4
+from omegaconf import OmegaConf, MISSING
 
-    # Data Configuration
-    DATASET = 'bone_tooth_mask'
-    NUM_FOLDS = 4
-    BATCH_SIZE = 16
+def load_config(load_path):
+    with open(load_path, 'rb') as file:
+        content = tomllib.load(file)
 
-    # Training Settings
-    NUM_EPOCHS = 50
+    config = OmegaConf.create(content)
 
-    # Model Architecture
-    MODEL_NAME = 'DeepUNet'
-    MODEL_PARAMETERS = {
-        'in_channels': 1,
-        'num_classes': 3
-    }
+    config.fold = MISSING
+    config.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    config.split_filename = os.path.join('splits', f'{config.dataset}.json')
 
-    # Optimizer
-    OPTIMIZER_NAME = 'Adam'
-    OPTIMIZER_PARAMETERS = {
-        'lr': 1e-4
-    }
+    OmegaConf.set_struct(config, True)
 
-    # Loss Function
-    LOSS_NAME = 'DeepSupervisionLoss'
-    MAIN_LOSS = 'Total Loss'
-    LOSS_PARAMETERS = {
-        'num_classes': 3
-    }
+    return config
 
-    # Metric
-    METRIC_NAME = 'mIoU'
-    METRIC_PARAMETERS = {
-        'num_classes': 3,
-        'predict_index': 0
-    }
+if __name__ == '__main__':
+    from src.utils import Table
+    from omegaconf.dictconfig import DictConfig
 
-    def __init__(self):
-        self.DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.SPLIT_FILENAME = os.path.join('splits', f'{self.DATASET}.json')
+    def get_items(config, prefix=''):
+        for key, value in config.items():
+            key = f'{prefix}.{key}' if prefix else key
+            if isinstance(value, DictConfig):
+                yield from get_items(value, key)
+            else:
+                yield key, value
+
+    config = load_config('configs/unet.toml')
+    config.fold = 1
+
+    table = Table(['Parameter', 'Value'])
+    for key, value in get_items(config):
+        table.add_row([key, value])
+    table.display()

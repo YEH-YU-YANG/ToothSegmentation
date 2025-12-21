@@ -64,39 +64,31 @@ LOSSES = {
 }
 
 def get_loss(config):
-    return LOSSES[config.LOSS_NAME](**config.LOSS_PARAMETERS)
+    return LOSSES[config.loss.name](**config.loss.parameters)
 
 if __name__ == '__main__':
-    from .dataset import get_loader
-    from .models import get_model
-    from .utils import Table
-    from .config import Config
+    import torch
 
-    config = Config()
-    config.MODEL_NAME = 'DeepUNet'
-    config.MODEL_PARAMETERS = {
-        'in_channels': 1,
-        'num_classes': 3
-    }
-    config.LOSS_NAME = 'DeepSupervisionLoss'
-    config.LOSS_PARAMETERS = {
-        'num_classes': 3
-    }
-    config.BATCH_SIZE = 4
-    config.FOLD = 1
+    from src.dataset import get_loader
+    from src.models import get_model
+    from src.utils import Table
+    from src.config import load_config
+
+    config = load_config('configs/unet.toml')
+    config.fold = 1
 
     loader, _ = get_loader(config)
-    model = get_model(config).to(config.DEVICE)
-    criterion = get_loss(config).to(config.DEVICE)
+    model = get_model(config).to(config.device)
+    criterion = get_loss(config).to(config.device)
 
     for images, masks, _ in loader:
-        images = images.to(config.DEVICE)
-        masks = masks.to(config.DEVICE)
+        images = images.to(config.device)
+        masks = masks.to(config.device)
         break
 
-    predicts = model(images)
-
-    loss_dict = criterion(predicts, masks)
+    with torch.autocast(config.device):
+        predicts = model(images)
+        loss_dict = criterion(predicts, masks)
 
     Table(
         ['Loss', 'Value'],

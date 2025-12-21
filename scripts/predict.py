@@ -32,16 +32,19 @@ def save_compare(image, predict, mask, output_dir, filename):
 def predict_patient(model, patient, output_dir, config):
     os.makedirs(output_dir, exist_ok=True)
 
-    dataset = CBCTDataset(config.DATASET, [patient])
-    loader = DataLoader(dataset, config.BATCH_SIZE, shuffle=False)
+    dataset_dir = os.path.join('datasets', config.dataset)
+    dataset = CBCTDataset(dataset_dir, [patient])
+    loader = DataLoader(dataset, config.batch_size, shuffle=False)
 
     volume = []
     ground_truth = []
     for images, masks, filenames in track(loader, desc=f'{patient:7}'):
-        images = images.to(config.DEVICE)
+        images = images.to(config.device)
 
-        with torch.no_grad(), torch.autocast(config.DEVICE):
-            predicts = model(images) # (B, C, H, W)
+        with torch.no_grad(), torch.autocast(config.device):
+            predicts = model(images) # (B, C, H, W) or (N, B, C, H, W)
+            if isinstance(predicts, tuple):
+                predicts = predicts[0] # (B, C, H, W)
         predicts = predicts.argmax(1).cpu() # (B, H, W)
 
         volume.append(predicts)
@@ -63,15 +66,15 @@ def predict_patient(model, patient, output_dir, config):
     numpy.save(os.path.join(output_dir, 'ground_truth.npy'), ground_truth.numpy())
 
 def load_model(config):
-    model = get_model(config).to(config.DEVICE)
-    state_dict = torch.load(os.path.join('logs', config.EXPERIMENT, f'Fold_{config.FOLD}', 'best.pth'))
+    model = get_model(config).to(config.device)
+    state_dict = torch.load(os.path.join('logs', config.experiment, f'Fold_{config.fold}', 'best.pth'))
     model.load_state_dict(state_dict)
     model.eval()
     return model
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-    from src.utils import load_config
+    from src.config import load_config
     from src.dataset import get_fold
 
     parser = ArgumentParser()
@@ -80,14 +83,14 @@ if __name__ == '__main__':
 
     experiment_name = args.exp
 
-    config = load_config(os.path.join('logs', experiment_name, 'config.json'))
+    config = load_config(os.path.join('logs', experiment_name, 'config.toml'))
 
-    for fold in range(1, config.NUM_FOLDS + 1):
-        config.FOLD = fold
+    for fold in range(1, config.num_folds + 1):
+        config.fold = fold
 
         model = load_model(config)
 
-        _, val_patients = get_fold(config.SPLIT_FILENAME, fold)
+        _, val_patients = get_fold(config.split_filename, fold)
         for patient in val_patients:
             output_dir = os.path.join('outputs', experiment_name, f'Fold_{fold}', patient)
             os.makedirs(os.path.join(output_dir, 'predict'), exist_ok=True)

@@ -3,16 +3,18 @@ import os
 
 from sklearn.model_selection import GroupKFold
 from src.utils import Table
-from src.config import Config
+from src.config import load_config
 
-config = Config()
+config = load_config('configs/config.toml')
 
-patients = os.listdir(os.path.join(config.DATASET, 'image'))
+image_dir = os.path.join('datasets', config.dataset, 'image')
+
+patients = os.listdir(image_dir)
 patients.sort(key=lambda x: int(x[5:]))
 
 groups = []
 for patient in patients:
-    images = os.listdir(os.path.join(config.DATASET, 'image', patient))
+    images = os.listdir(os.path.join(image_dir, patient))
     groups.extend([patient] * len(images))
 
 Table(
@@ -21,7 +23,7 @@ Table(
     ['Image', len(groups)]
 ).display()
 
-k_fold = GroupKFold(config.NUM_FOLDS)
+k_fold = GroupKFold(config.num_folds)
 
 folds = {}
 
@@ -36,6 +38,6 @@ table.display()
 for fold, patients in folds.items():
     print(f'Fold {fold}: {patients}')
 
-os.makedirs(os.path.dirname(config.SPLIT_FILENAME), exist_ok=True)
-with open(config.SPLIT_FILENAME, 'w') as file:
+os.makedirs(os.path.dirname(config.split_filename), exist_ok=True)
+with open(config.split_filename, 'w') as file:
     json.dump(folds, file)
