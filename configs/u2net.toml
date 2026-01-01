@@ -4,7 +4,7 @@ seed = 42
 num_workers = 4
 
 # Data Configuration
-dataset = ["bone_tooth_mask"]
+datasets = ["bone_tooth_mask"]
 split_filename = "bone_tooth_mask"
 num_folds = 4
 batch_size = 4
