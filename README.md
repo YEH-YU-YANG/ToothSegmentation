@@ -15,11 +15,13 @@
 │   ├── 📄 unet.py          # U-Net model architecture definition
 │   └── 📄 ...              # Additional model implementation
 ├── 📄 config.py            # Configuration settings and hyperparameters
+├── 📄 console.py           # Console output helpers (progress tracking and table-style summaries)
 ├── 📄 dataset.py           # Custom Dataset and DataLoader implementation
 ├── 📄 losses.py            # Custom loss functions
 ├── 📄 metrics.py           # Evaluation metrics (e.g., mIoU)
-├── 📄 trainer.py           # Handles training and validation loops
-└── 📄 utils.py             # Utility functions
+├── 📄 optimizers.py        # Optimizer construction utilities
+├── 📄 summary.py           # TensorBoard log parsing and scalar summary utilities
+└── 📄 trainer.py           # Handles training and validation loops
 ```
 
 ## 📁 Dataset Preparation
@@ -100,10 +102,20 @@ Generates:
 ```
 splits/<SPLIT_FILENAME>.json
 {
-    "1": ["data_1", ...],
-    "2": ["data_2", ...],
-    "3": ["data_3", ...],
-    "4": ["data_4", ...]
+    "1": {
+        "<DATASET_NAME_1>": [
+            "data_1",
+            ...
+        ],
+        "<DATASET_NAME_2>": [
+            "data_1",
+            ...
+        ],
+        ...
+    },
+    "2": {...},
+    "3": {...},
+    "4": {...}
 }
 ```
 
@@ -166,16 +178,18 @@ Outputs:
 ```
 📁 outputs/<EXPERIMENT_NAME>
 ├── 📂 Fold_1
-│   ├── 📂 data_1
-│   │   ├── 📂 compare
-│   │   │   ├── 📄 91.png
-│   │   │   └── 📄 ...
-│   │   ├── 📂 predict
-│   │   │   ├── 📄 91.png
-│   │   │   └── 📄 ...
-│   │   ├── 📄 ground_truth.npy
-│   │   └── 📄 volume.npy
-│   └── 📂 ...
+│   ├── 📂 <DATASET_NAME_1>
+│   │   ├── 📂 data_1
+│   │   │   ├── 📂 compare
+│   │   │   │   ├── 📄 91.png
+│   │   │   │   └── 📄 ...
+│   │   │   ├── 📂 predict
+│   │   │   │   ├── 📄 91.png
+│   │   │   │   └── 📄 ...
+│   │   │   ├── 📄 ground_truth.npy
+│   │   │   └── 📄 volume.npy
+│   │   └── 📂 ...
+│   └── 📂 <DATASET_NAME_2>
 ├── 📂 Fold_2
 ├── 📂 Fold_3
 └── 📂 Fold_4
@@ -192,4 +206,4 @@ python -m scripts.visualize <EXPERIMENT_NAME>
 
 * Ensure the dataset follows the required structure.
 * Modify `configs/config.toml` to customize model, loss, optimizer, and metrics.
-* Support for additional models/losses can be added under `src/models` or `src/losses`.
+* The framework is modular and extensible, allowing new models, loss functions, metrics, and optimizers to be added under `src/models/`, `src/losses.py`, `src/metrics.py`, and `src/optimizers.py`.
