@@ -49,11 +49,11 @@ class VolumeLoader(QThread):
 
     def run(self):
         predict_volume, ground_truth_volume = self.data_manager.load_data(self.patient)
-        predict_volume = self.process_volume(predict_volume)
-        ground_truth_volume = self.process_volume(ground_truth_volume)
+        predict_volume = self._process_volume(predict_volume)
+        ground_truth_volume = self._process_volume(ground_truth_volume)
         self.finished.emit(predict_volume, ground_truth_volume)
 
-    def process_volume(self, volume):
+    def _process_volume(self, volume):
         volume = volume.transpose(2, 1, 0) # (W, H, Z)
         volume = numpy.flip(volume, 2) # upside down
 
@@ -90,9 +90,9 @@ class SyncGLView(GLViewWidget):
         self.item.rotate(90, 0, 0, 1)
         self.addItem(self.item)
 
-        self.reset_camera()
+        self._reset_camera()
 
-    def reset_camera(self):
+    def _reset_camera(self):
         width, _, depth = self.volume_shape
         fov = self.opts['fov']
         self.setCameraPosition(
@@ -102,28 +102,28 @@ class SyncGLView(GLViewWidget):
             azimuth=0
         )
 
-    def sync_change(self):
+    def _sync_change(self):
         self.viewChanged.emit(self.opts)
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)
-        self.sync_change()
+        self._sync_change()
 
     def wheelEvent(self, event):
         super().wheelEvent(event)
-        self.sync_change()
+        self._sync_change()
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        self.sync_change()
+        self._sync_change()
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        self.sync_change()
+        self._sync_change()
 
     def contextMenuEvent(self, event):
-        self.reset_camera()
-        self.sync_change()
+        self._reset_camera()
+        self._sync_change()
 
     def apply_opts(self, options):
         for key in ['azimuth', 'elevation', 'distance', 'center']:
@@ -160,17 +160,17 @@ class MainWindow(MainWindowUI):
 
         self.patient_selector.addItems(self.data_manager.patients)
         self.patient_selector.setCurrentIndex(-1)
-        self.patient_selector.currentIndexChanged.connect(self.load_patient)
+        self.patient_selector.currentIndexChanged.connect(self._load_patient)
 
-    def load_patient(self, index):
+    def _load_patient(self, index):
         patient = self.data_manager.patients[index]
         self.patient_selector.setEnabled(False)
         self.thread = VolumeLoader(self.data_manager, patient)
-        self.thread.finished.connect(self.on_volume_loaded)
+        self.thread.finished.connect(self._on_volume_loaded)
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
-    def on_volume_loaded(self, predict_volume, ground_truth_volume):
+    def _on_volume_loaded(self, predict_volume, ground_truth_volume):
         self.predict_view.update_volume(predict_volume)
         self.ground_truth_view.update_volume(ground_truth_volume)
         self.patient_selector.setEnabled(True)
@@ -193,6 +193,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     experiment_name = args.exp
+    if not os.path.exists(os.path.join('outputs', experiment_name)):
+        raise FileNotFoundError(
+            f'Output of experiment "{experiment_name}" not found.\033[0m\n'
+            'Try using the following command to generating segmentation results:\n'
+            f'\033[36mpython scripts/predict.py {experiment_name}\033[0m'
+        )
 
     config = load_config(os.path.join('logs', experiment_name, 'config.toml'))
     patient_fold_map = get_patient_fold_mapping(config)

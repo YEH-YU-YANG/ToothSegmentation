@@ -26,14 +26,14 @@ class Trainer:
         self.grad_scaler = amp.GradScaler(config.device)
         self.summary_writer = SummaryWriter(self.log_dir)
         self.columns = [*self.criterion.components, self.metric_name]
-    def run_epoch(self, train=True):
+    def _run_epoch(self, train=True):
         if train:
             self.model.train()
-            return self.run_loader(self.train_loader, 'Train', train=True)
+            return self._run_loader(self.train_loader, 'Train', train=True)
         else:
             self.model.eval()
-            return self.run_loader(self.val_loader, 'Val  ', train=False)
-    def run_loader(self, loader, desc, train=True):
+            return self._run_loader(self.val_loader, 'Val  ', train=False)
+    def _run_loader(self, loader, desc, train=True):
         logs = defaultdict(float)
 
         grad_fn = torch.enable_grad if train else torch.inference_mode
@@ -41,7 +41,7 @@ class Trainer:
             for images, masks, _ in track(loader, desc=desc):
                 images = images.to(self.device, non_blocking=True)
                 masks = masks.to(self.device, non_blocking=True)
-                predicts, loss_dict = self.model_step(images, masks)
+                predicts, loss_dict = self._model_step(images, masks)
                 loss = loss_dict[self.main_loss]
 
                 if train:
@@ -63,12 +63,12 @@ class Trainer:
         logs[self.metric_name] = self.metric_fn.compute_reset()
 
         return logs
-    def model_step(self, images, masks):
+    def _model_step(self, images, masks):
         with torch.autocast(self.device):
             predicts = self.model(images)
             loss_dict = self.criterion(predicts, masks)
         return predicts, loss_dict
-    def write_summary(self, train_data, val_data, epoch):
+    def _write_summary(self, train_data, val_data, epoch):
         for title in self.columns:
             self.summary_writer.add_scalars(title, {'Train': train_data[title], 'Val': val_data[title]}, epoch)
     def fit(self, epochs):
@@ -77,8 +77,8 @@ class Trainer:
         for epoch in range(1, epochs + 1):
             print(f'{epoch:>{width}}/{epochs}')
 
-            train_data = self.run_epoch(train=True)
-            val_data = self.run_epoch(train=False)
+            train_data = self._run_epoch(train=True)
+            val_data = self._run_epoch(train=False)
 
             Table(
                 ['', *self.columns],
@@ -92,7 +92,7 @@ class Trainer:
                 best_metric = val_metric
                 torch.save(self.model.state_dict(), os.path.join(self.log_dir, 'best.pth'))
 
-            self.write_summary(train_data, val_data, epoch)
+            self._write_summary(train_data, val_data, epoch)
 
         torch.save(self.model.state_dict(), os.path.join(self.log_dir, 'last.pth'))
         self.summary_writer.close()

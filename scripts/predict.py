@@ -7,7 +7,6 @@ from PIL import ImageFont
 from PIL.ImageDraw import Draw
 from src.dataset import CBCTDataset
 from src.console import track
-from src.models import get_model
 from torch.utils.data import DataLoader
 
 def save_image(image, output_dir, filename):
@@ -65,23 +64,19 @@ def predict_patient(model, dataset, patient, output_dir, config):
     ground_truth = torch.cat(ground_truth)
     numpy.save(os.path.join(output_dir, 'ground_truth.npy'), ground_truth.numpy())
 
-def load_model(config):
-    model = get_model(config).to(config.device)
-    state_dict = torch.load(os.path.join('logs', config.experiment, f'Fold_{config.fold}', 'best.pth'))
-    model.load_state_dict(state_dict)
-    model.eval()
-    return model
-
 if __name__ == '__main__':
     from argparse import ArgumentParser
     from src.config import load_config
     from src.dataset import get_fold
+    from src.models import load_model
+    from src.downloader import ensure_experiment_exists
 
     parser = ArgumentParser()
     parser.add_argument('exp', type=str)
     args = parser.parse_args()
 
     experiment_name = args.exp
+    ensure_experiment_exists(experiment_name)
 
     config = load_config(os.path.join('logs', experiment_name, 'config.toml'))
 

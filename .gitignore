@@ -1,4 +1,5 @@
 __pycache__/
+.env
 clean_pycache.sh
 configs/config.toml
 datasets/

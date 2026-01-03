@@ -1,7 +1,7 @@
 import os
 import torch
 
-from src.models import get_model
+from src.models import load_model
 
 def evaluate_fold(config, criterion, metric_fn):
     model = load_model(config)
@@ -39,13 +39,6 @@ def evaluate_fold(config, criterion, metric_fn):
 
     return logs
 
-def load_model(config):
-    model = get_model(config).to(config.device)
-    state_dict = torch.load(os.path.join('logs', config.experiment, f'Fold_{config.fold}', 'best.pth'))
-    model.load_state_dict(state_dict)
-    model.eval()
-    return model
-
 if __name__ == '__main__':
     from argparse import ArgumentParser
     from src.config import load_config
@@ -54,12 +47,14 @@ if __name__ == '__main__':
     from src.losses import get_loss
     from src.dataset import get_loader
     from collections import defaultdict
+    from src.downloader import ensure_experiment_exists
 
     parser = ArgumentParser()
     parser.add_argument('exp', type=str)
     args = parser.parse_args()
 
     experiment_name = args.exp
+    ensure_experiment_exists(experiment_name)
 
     config = load_config(os.path.join('logs', experiment_name, 'config.toml'))
 
