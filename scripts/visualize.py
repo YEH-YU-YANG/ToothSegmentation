@@ -6,7 +6,6 @@ from PySide6.QtCore import Signal, QThread
 from PySide6.QtGui import QVector3D
 from pyqtgraph.opengl import GLViewWidget, GLVolumeItem
 from scipy import ndimage
-from src.dataset import get_fold
 
 class Label:
     TOOTH = 1
@@ -27,7 +26,7 @@ class DataManager:
         self.experiment_name = experiment_name
         self.patient_mapping = {
             patient: fold
-            for patient, fold in sorted(patient_mapping.items(), key=lambda x: int(x[0][5:]))
+            for patient, fold in sorted(patient_mapping.items(), key=lambda x: (x[0].split('/')[0], int(x[0].split('_')[-1])))
         }
         self.patients = list(self.patient_mapping.keys())
         self.base_output_dir = base_output_dir
@@ -176,15 +175,13 @@ class MainWindow(MainWindowUI):
         self.ground_truth_view.update_volume(ground_truth_volume)
         self.patient_selector.setEnabled(True)
 
-def get_patient_fold_mapping(config):
-    raise NotImplementedError('get_patient_fold_mapping(config) is currently disabled and under refactor.')
-    
-    # previous implementation (for reference)
-    # return {
-    #     patient: fold
-    #     for fold in range(1, config.num_folds + 1)
-    #     for patient in get_fold(config.split_filename, fold)[1]
-    # }
+def get_patient_fold_mapping(config, base_output_dir='outputs'):
+    return {
+        f'{dataset}/{patient}': fold
+        for fold in range(1, config.num_folds + 1)
+        for dataset in config.datasets
+        for patient in os.listdir(os.path.join(base_output_dir, config.experiment, f'Fold_{fold}', dataset))
+    }
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

@@ -1,5 +1,5 @@
 # System and Experiment
-experiment = "UNet_DeepSupervision"
+experiment = "DeepUNet_baseline"
 seed = 42
 num_workers = 4
 
