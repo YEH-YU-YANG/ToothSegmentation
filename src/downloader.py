@@ -79,14 +79,36 @@ class SFTPDownloader:
             self.client.close()
         return False
 
+def get_env():
+    if not os.path.exists('.env'):
+        raise FileNotFoundError(
+            '.env file not found.\033[0m\n'
+            'This file is required for SFTP connection.\n\n'
+            'Copy ".env.example" to ".env" and fill in your credentials.\n'
+            'Example:\n'
+            '\033[90mSFTP_HOSTNAME = your.server.address\n'
+            'SFTP_PORT = 22\n'
+            'SFTP_USERNAME = your_username\n'
+            'SFTP_PASSWORD = your_password\033[0m\n'
+            'Please refer to README.md for more details.'
+        )
+
+    load_dotenv()
+    return {
+        'hostname': os.getenv('SFTP_HOSTNAME'),
+        'port': int(os.getenv('SFTP_PORT')),
+        'username': os.getenv('SFTP_USERNAME'),
+        'password': os.getenv('SFTP_PASSWORD')
+    }
+
 def download_experiment(experiment_name, *, source_log_dir='tooth_segmentation/logs', output_dir='logs', ignore_files=None):
     ignore_files = ignore_files or ['events.out.tfevents.*', 'last.pth']
 
-    load_dotenv()
-    hostname = os.getenv('SFTP_HOSTNAME')
-    port = int(os.getenv('SFTP_PORT'))
-    username = os.getenv('SFTP_USERNAME')
-    password = os.getenv('SFTP_PASSWORD')
+    env = get_env()
+    hostname = env['hostname']
+    port = env['port']
+    username = env['username']
+    password = env['password']
 
     try:
         with SFTPDownloader(hostname, port, username, password) as downloader:
@@ -104,22 +126,3 @@ def ensure_experiment_exists(experiment_name, *, source_log_dir='tooth_segmentat
     if not os.path.exists(os.path.join(output_dir, experiment_name)):
         print(f'Experiment "{experiment_name}" not found. Downloading from the server...')
         download_experiment(experiment_name, source_log_dir=source_log_dir, output_dir=output_dir, ignore_files=ignore_files)
-
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-
-    parser = ArgumentParser()
-    parser.add_argument('experiment', type=str)
-    parser.add_argument('--source-log-dir', default='tooth_segmentation/logs')
-    parser.add_argument('--output', default='logs')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--ignore', nargs='*', default=['events.out.tfevents.*', 'last.pth'])
-    group.add_argument('--no-ignore', action='store_true')
-    args = parser.parse_args()
-
-    source_log_dir = args.source_log_dir
-    experiment_name = args.experiment
-    output_dir = args.output
-    ignore_files = args.ignore if not args.no_ignore else []
-
-    download_experiment(experiment_name, source_log_dir=source_log_dir, output_dir=output_dir, ignore_files=ignore_files)

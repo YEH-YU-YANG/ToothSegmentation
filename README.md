@@ -4,6 +4,7 @@
 
 ```
 📁 scripts
+├── 📄 download.py          # Downloads experiment logs from a remote server via SFTP
 ├── 📄 evaluate.py          # Runs model evaluation for each fold, computes losses and metrics (e.g., mIoU)
 ├── 📄 predict.py           # Inference script for generating segmentation results
 ├── 📄 prepare_kfold.py     # Data splitting for K-Fold cross-validation
@@ -17,6 +18,7 @@
 ├── 📄 config.py            # Configuration settings and hyperparameters
 ├── 📄 console.py           # Console output helpers (progress tracking and table-style summaries)
 ├── 📄 dataset.py           # Custom Dataset and DataLoader implementation
+├── 📄 downloader.py        # Utilities for downloading experiment directories from a remote server using SFTP
 ├── 📄 losses.py            # Custom loss functions
 ├── 📄 metrics.py           # Evaluation metrics (e.g., mIoU)
 ├── 📄 optimizers.py        # Optimizer construction utilities
@@ -201,6 +203,26 @@ You can visualize the segmentation predictions together with ground truth masks:
 ```
 python -m scripts.visualize <EXPERIMENT_NAME>
 ```
+
+## 🔐 Remote Server Connection
+
+Download experiment logs from a remote server via SFTP.
+
+Create `.env` from the example and fill in your credentials:
+```
+cp .env.example .env
+```
+```
+SFTP_HOSTNAME = your.server.address
+SFTP_PORT = 22
+SFTP_USERNAME = your_username
+SFTP_PASSWORD = your_password
+```
+```
+python -m scripts.download <EXPERIMENT_NAME>
+```
+
+`.env` should not be committed and must be listed in `.gitignore`.
 
 ## 📝 Notes
 
