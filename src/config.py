@@ -1,6 +1,8 @@
 import torch
-import tomllib
-
+try:
+    import tomllib  # Python 3.11+
+except ImportError:
+    import tomli as tomllib  # Python < 3.11
 from omegaconf import OmegaConf, MISSING
 
 def load_config(load_path):
