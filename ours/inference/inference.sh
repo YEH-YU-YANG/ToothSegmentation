@@ -10,7 +10,8 @@ ALPHA=0.4
 
 # 專案根目錄與資料根目錄
 PROJECT_ROOT="/d/YYYeh/ToothSegmentation"
-DATA_ROOT="${PROJECT_ROOT}/data"
+# DATA_ROOT="${PROJECT_ROOT}/data"
+DATA_ROOT="data"
 
 echo "========================================"
 echo "      Starting Batch Inference          "
@@ -24,39 +25,39 @@ for FOLD in 1 2 3 4; do
 	case "$FOLD" in
 		1)
 			PATIENT_LIST=(
-			# "57969132"  # 植體
-			# "2188726"   # 植體
-			# "21800298"  # 植體
-			# "28643177"  # 植體
+			"57969132"  # 植體
+			"2188726"   # 植體
+			"21800298"  # 植體
+			"28643177"  # 植體
 			"40657603"  # 植體
-			# "52730449"  # 植體
+			"52730449"  # 植體
 			
-			# "24937292"  # data_6
-			# "33802992"  # data_9
-			# "49095613"  # data_14
-			# "73141798"  # data_18
+			"24937292"  # data_6
+			"33802992"  # data_9
+			"49095613"  # data_14
+			"73141798"  # data_18
 			)
 			;;
-		# 2)
-		# 	PATIENT_LIST=(
-		# 	"15235753"  # data_3
-		# 	"33208616"  # data_8
-		# 	"56872376"  # data_16
-		# 	)
-		# 	;;
-		# 3)
-		# 	PATIENT_LIST=(
-		# 	"18234781"  # data_4
-		# 	"35290820"  # data_10
-		# 	)
-		# 	;;
-		# 4)
-		# 	PATIENT_LIST=(
-		# 	"4333498"   # data_2
-		# 	"36719405"  # data_11
-		# 	"37460134"  # data_12
-		# 	)
-		# 	;;
+		2)
+			PATIENT_LIST=(
+			"15235753"  # data_3
+			"33208616"  # data_8
+			"56872376"  # data_16
+			)
+			;;
+		3)
+			PATIENT_LIST=(
+			"18234781"  # data_4
+			"35290820"  # data_10
+			)
+			;;
+		4)
+			PATIENT_LIST=(
+			"4333498"   # data_2
+			"36719405"  # data_11
+			"37460134"  # data_12
+			)
+			;;
 		*)
 			echo "Error: Invalid Fold $FOLD"
 			exit 1
