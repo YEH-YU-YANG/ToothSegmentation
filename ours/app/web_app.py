@@ -2,173 +2,176 @@ import streamlit as st
 import pyvista as pv
 from stpyvista import stpyvista
 import os
-import numpy as np
+import pandas as pd
+from pathlib import Path
 
 # ================= 系統設定 =================
-# 嘗試啟動虛擬螢幕，解決無頭伺服器渲染問題
 try:
     pv.start_xvfb()
 except Exception:
     pass
 
-st.set_page_config(layout="wide", page_title="3D Dental Viewer (Robust)")
-DATA_ROOT_DIR = os.path.join("..", "..", "data")
+st.set_page_config(layout="wide", page_title="Professional Dental 3D Viewer")
 
-# ================= 核心函數 (防彈版讀取) =================
+# 設定資料根目錄
+DATA_ROOT = Path("/home/p76144736/yeh/paper_related_project/ToothSegmentation/data")
+LOG_FILE = "data_quality_log.csv"
 
-@st.cache_resource(show_spinner="Loading Model...")
-def load_mesh_file(path, simplify=True):
+# ================= 核心邏輯 =================
+
+@st.cache_resource(show_spinner="正在優化網格...")
+def load_and_preprocess_mesh(path, target_cells=60000):
     """
-    防彈版讀取：
-    1. 自動修復壞掉的網格 (clean/triangulate)
-    2. 簡化失敗時自動回滾
-    3. 確保有點才回傳
+    專業級預處理：包含清理、三角化、法線計算與減面。
     """
-    if not os.path.exists(path): return None
+    # 轉換為 Path 物件以確保相容性
+    path = Path(path)
+    
+    if not path.exists():
+        return None
     try:
-        # 1. 基礎讀取
-        mesh = pv.read(path)
+        mesh = pv.read(str(path))
+        # 清理無效幾何與孤立點
+        mesh = mesh.clean().triangulate()
         
-        # [修復] 清除孤立點、NaN點，並強制轉為三角網格 (解決顯示不出來的主因)
-        mesh = mesh.clean()
-        mesh = mesh.triangulate()
-        
-        # 檢查是否為空
-        if mesh.n_points == 0 or mesh.n_cells == 0:
-            print(f"[Warning] Empty mesh: {path}")
+        if mesh.n_points == 0:
             return None
 
-        # 2. 補法線 (確保光影)
-        if mesh.point_data.get("Normals") is None:
-            mesh.compute_normals(inplace=True, auto_orient_normals=True)
+        # 自動校正法線方向
+        mesh.compute_normals(inplace=True, auto_orient_normals=True)
 
-        # 3. 安全簡化 (Safe Decimation)
-        target_cells = 50000 
-        # 只有當面數真的太多的時候才簡化
-        if simplify and mesh.n_cells > target_cells:
-            try:
-                # 備份
-                original_mesh = mesh.copy()
-                
-                target_reduction = 1 - (target_cells / mesh.n_cells)
-                # 限制最大簡化率，避免把模型縮沒了 (例如不超過 90%)
-                target_reduction = min(target_reduction, 0.9)
-                
-                mesh.decimate(target_reduction, inplace=True)
-                
-                # [檢查] 如果簡化後點太少，認定失敗，還原
-                if mesh.n_points < 10:
-                    print(f"[Warning] Over-decimated {path}. Reverting.")
-                    mesh = original_mesh
-            except Exception as e:
-                print(f"[Error] Decimation failed for {path}: {e}. Using original.")
-                # 簡化報錯時，直接用原檔，不要回傳 None
-                pass 
+        # 智能減面
+        if mesh.n_cells > target_cells:
+            reduction = min(1 - (target_cells / mesh.n_cells), 0.85)
+            mesh = mesh.decimate(reduction)
             
         return mesh
     except Exception as e:
-        print(f"[Critical Error] Failed to load {path}: {e}")
+        st.error(f"讀取錯誤 {path.name}: {e}")
         return None
 
-def get_patient_list():
-    if not os.path.exists(DATA_ROOT_DIR): return []
-    p_list = [d for d in os.listdir(DATA_ROOT_DIR) if os.path.isdir(os.path.join(DATA_ROOT_DIR, d))]
-    p_list.sort()
-    return p_list
+def save_quality_feedback(patient_id, status):
+    """紀錄資料品質"""
+    new_data = pd.DataFrame([[patient_id, status]], columns=["PatientID", "Status"])
+    if os.path.exists(LOG_FILE):
+        df = pd.read_csv(LOG_FILE)
+        # 更新邏輯：保留最後一筆紀錄
+        df = pd.concat([df, new_data]).drop_duplicates(subset=["PatientID"], keep="last")
+    else:
+        df = new_data
+    df.to_csv(LOG_FILE, index=False)
+    st.sidebar.success(f"已記錄: {patient_id} 為 {status}")
 
-# ================= 繪圖邏輯 (安全渲染) =================
+# ================= 渲染組件 =================
 
-def plot_mesh_widget(mesh, key_id, title, color_style="default"):
-    # [檢查] 再次確認網格有效性
-    if mesh is None or mesh.n_points == 0:
-        st.warning(f"{title}: 載入失敗或模型為空")
+def render_3d_view(mesh, key, color="ivory", opacity=1.0):
+    """封裝 Plotter 物件，確保資源及時釋放"""
+    if mesh is None:
+        st.info("暫無模型資料")
         return
 
-    st.markdown(f"**{title}**")
-    
-    # 建立繪圖器
     plotter = pv.Plotter(window_size=[400, 400], off_screen=True)
-    plotter.background_color = "#303030"
+    plotter.background_color = "#1e1e1e"
     
-    # 關閉座標軸與邊框 (減少渲染錯誤機率)
-    # plotter.show_axes() 
+    plotter.add_mesh(
+        mesh, 
+        color=color, 
+        opacity=opacity, 
+        smooth_shading=True,
+        specular=0.5,
+        ambient=0.3
+    )
+    plotter.view_isometric()
+    plotter.reset_camera()
     
-    lighting_kwargs = {
-        "ambient": 0.4, "diffuse": 0.5, "specular": 0.1, "smooth_shading": True
-    }
+    stpyvista(plotter, key=key)
+    plotter.close() # 釋放顯存
 
-    # === 顏色設定 ===
-    # if "mask" in key_id or color_style == "mask":
-    #     c = "gold"
-    #     o = 0.5
-    # el
-    if "stl" in key_id:
-        c = "lightblue"
-        o = 1.0
-    else:
-        c = "ivory"
-        o = 1.0
+# ================= 介面佈局 =================
 
-    try:
-        plotter.add_mesh(mesh, color=c, opacity=o, **lighting_kwargs)
-        plotter.view_isometric()
-        plotter.reset_camera()
-        
-        # [關鍵] 傳送給 Streamlit
-        stpyvista(plotter, key=key_id)
-    except Exception as e:
-        st.error(f"Render Error: {e}")
-
-# ================= 主畫面 =================
 st.sidebar.title("Monitor")
-patient_list = get_patient_list()
-selected_patient = st.sidebar.selectbox("選擇病人 ID", patient_list) if patient_list else None
 
-if st.sidebar.button("Reload"):
-    st.cache_resource.clear()
-    st.rerun()
+# 獲取病人列表
+if DATA_ROOT.exists():
+    patient_list = sorted([d for d in os.listdir(DATA_ROOT) if (DATA_ROOT / d).is_dir()])
+else:
+    patient_list = []
+    st.sidebar.error("找不到資料路徑")
+
+selected_patient = st.sidebar.selectbox("患者編號 (Patient ID)", patient_list)
 
 if selected_patient:
-    st.title(f"Patient: {selected_patient}")
-    current_dir = os.path.join(DATA_ROOT_DIR, selected_patient)
-    vtp_dir = os.path.join(current_dir, "vtp")
+    p_path = DATA_ROOT / selected_patient
+    vtp_path = p_path / "vtp"
 
-    tab1, tab2 = st.tabs(["STL", "CBCT"])
+    st.title(f"檢視中: {selected_patient}")
+    
+    # 快速標記功能
+    col_btn1, col_btn2 = st.sidebar.columns(2)
+    if col_btn1.button("標記正常"):
+        save_quality_feedback(selected_patient, "Good")
+    if col_btn2.button("標記損壞"):
+        save_quality_feedback(selected_patient, "Bad/Artifact")
 
-    # --- Tab 1: STL ---
-    with tab1:
-        col1, col2 = st.columns(2)
-        with col1:
-            m = load_mesh_file(os.path.join(current_dir, "ios", "LowerJawScan.stl"))
-            plot_mesh_widget(m, f"stl_l_{selected_patient}", "Lower Jaw")
-        with col2:
-            m = load_mesh_file(os.path.join(current_dir, "ios", "UpperJawScan.stl"))
-            plot_mesh_widget(m, f"stl_u_{selected_patient}", "Upper Jaw")
+    tab_stl, tab_vtp = st.tabs(["原始 IOS 掃描", "分割結果"])
 
-    # --- Tab 2: VTP ---
-    with tab2:
+    # --- Tab 1: STL 顯示 ---
+    with tab_stl:
+        c1, c2 = st.columns(2)
+        with c1:
+            st.subheader("Lower Jaw")
+            m = load_and_preprocess_mesh(p_path / "ios" / "LowerJawScan.stl")
+            render_3d_view(m, f"stl_l_{selected_patient}", color="lightblue")
+        with c2:
+            st.subheader("Upper Jaw")
+            m = load_and_preprocess_mesh(p_path / "ios" / "UpperJawScan.stl")
+            render_3d_view(m, f"stl_u_{selected_patient}", color="lightpink")
+
+    # --- Tab 2: VTP 顯示 ---
+    with tab_vtp:
+        st.subheader("Mask 檔案比對")
         
-        col_m1, col_m2 = st.columns(2)
-        
-        # with col_m1:
-        #     path = os.path.join(vtp_dir, "mask_multi.vtp")
-        #     m = load_mesh_file(path)
-        #     plot_mesh_widget(m, f"vtp_multi_{selected_patient}", "Mask (Multi)", "mask")
+        # 使用 Expander 讓介面更整潔，且修正了檔案讀取邏輯與 Key 重複問題
+        with st.expander("展開查看：原始 vs 清洗後 Mask", expanded=True):
+            r1_c1, r1_c2 = st.columns(2)
+            
+            # 原始資料區塊
+            with r1_c1:
+                st.markdown("**原始 Binary Mask**")
+                m = load_and_preprocess_mesh(vtp_path / "mask_binary.vtp")
+                # Key 加上 _raw 避免衝突
+                render_3d_view(m, f"v_bin_raw_{selected_patient}", color="gold", opacity=0.7)
+                
+                st.markdown("**原始 Multi-class Mask**")
+                m = load_and_preprocess_mesh(vtp_path / "mask_multi.vtp")
+                render_3d_view(m, f"v_mul_raw_{selected_patient}", color="cyan", opacity=0.7)
 
-        with col_m1:
-            path = os.path.join(vtp_dir, "mask_binary.vtp")
-            m = load_mesh_file(path)
-            plot_mesh_widget(m, f"vtp_bin_{selected_patient}", "Mask (Binary)", "mask")
+            # 清洗後資料區塊
+            with r1_c2:
+                st.markdown("**清洗後 Binary Mask**")
+                m = load_and_preprocess_mesh(vtp_path / "mask_binary_clean.vtp")
+                # Key 加上 _clean 避免衝突
+                render_3d_view(m, f"v_bin_clean_{selected_patient}", color="gold", opacity=0.7)
+
+                st.markdown("**清洗後 Multi-class Mask**")
+                m = load_and_preprocess_mesh(vtp_path / "mask_multi_clean.vtp")
+                render_3d_view(m, f"v_mul_clean_{selected_patient}", color="cyan", opacity=0.7)
 
         st.markdown("---")
-        st.markdown("#### 分離結果")
+        st.subheader("牙齒分離結果")
+        
         c1, c2, c3 = st.columns(3)
-        with c1:
-            m = load_mesh_file(os.path.join(vtp_dir, "teeth_clean.vtp"))
-            plot_mesh_widget(m, f"cln_{selected_patient}", "Clean")
-        with c2:
-            m = load_mesh_file(os.path.join(vtp_dir, "teeth_lower.vtp"))
-            plot_mesh_widget(m, f"low_{selected_patient}", "Lower")
-        with c3:
-            m = load_mesh_file(os.path.join(vtp_dir, "teeth_upper.vtp"))
-            plot_mesh_widget(m, f"up_{selected_patient}", "Upper")
+        
+        vtp_files = [
+            ("teeth_clean.vtp", "Total Clean", "ivory"),
+            ("teeth_lower.vtp", "Lower Teeth", "lightblue"),
+            ("teeth_upper.vtp", "Upper Teeth", "lightpink")
+        ]
+        
+        cols = [c1, c2, c3]
+        for i, (fname, label, color) in enumerate(vtp_files):
+            with cols[i]:
+                st.caption(label)
+                m = load_and_preprocess_mesh(vtp_path / fname)
+                # 使用唯一的 Key 格式
+                render_3d_view(m, f"sep_{i}_{selected_patient}", color=color)

@@ -18,8 +18,10 @@ def process_patient_geometry(patient_id):
 
     # 定義要處理的檔案清單
     tasks = [
-        ("mask_multi.npy", "mask_multi.vtp"),   
+        ("mask_multi.npy", "mask_multi.vtp"),
+        ("mask_multi_clean.npy", "mask_multi_clean.vtp"),      
         ("mask_binary.npy", "mask_binary.vtp"),
+        ("mask_binary_clean.npy", "mask_binary_clean.vtp"),
         ("teeth_clean.npy", "teeth_clean.vtp"),
         ("teeth_lower.npy", "teeth_lower.vtp"),
         ("teeth_upper.npy", "teeth_upper.vtp")
